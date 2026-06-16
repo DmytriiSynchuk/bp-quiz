@@ -87,19 +87,29 @@ window.bpQuiz = (function(){
   }
 
   if (window.parent !== window) {
-    // Mark embedded so styles.css can neutralise min-h-screen / 100vh rules
-    // that would otherwise feed back into the height calculation.
-    document.addEventListener('DOMContentLoaded', function(){
-      document.body.classList.add('bp-embedded');
-    });
-    if (typeof ResizeObserver !== 'undefined') {
+    // Inject min-height neutralisers IMMEDIATELY so the body never gets a
+    // 100vh-based min-height while embedded. Done via a <style> tag rather
+    // than a body class so there is no timing race with classList.add.
+    try {
+      var s = document.createElement('style');
+      s.textContent =
+        'html, body { min-height: 0 !important; height: auto !important; }' +
+        '#bp-quiz-app, #bp-quiz-app > div { min-height: 0 !important; height: auto !important; }';
+      (document.head || document.documentElement).appendChild(s);
+    } catch (err) {}
+
+    function attachObserver(){
+      if (typeof ResizeObserver === 'undefined') return;
       try {
         var ro = new ResizeObserver(function(){ postHeightToParent(); });
-        document.addEventListener('DOMContentLoaded', function(){
-          var target = document.getElementById('bp-quiz-app') || document.body;
-          ro.observe(target);
-        });
+        var target = document.getElementById('bp-quiz-app') || document.body;
+        if (target) ro.observe(target);
       } catch (err) {}
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachObserver);
+    } else {
+      attachObserver();
     }
     window.addEventListener('load', postHeightToParent);
     window.addEventListener('resize', postHeightToParent);

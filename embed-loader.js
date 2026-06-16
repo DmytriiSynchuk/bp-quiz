@@ -14,13 +14,19 @@
     iframe.src = QUIZ_BASE + window.location.search;
   }
 
+  var lastSetHeight = 0;
   window.addEventListener('message', function(e){
     if (e.origin !== ALLOWED_ORIGIN) return;
     if (!e.data || !e.data.type) return;
     if (e.data.type === 'bp-quiz-height') {
       var h = parseInt(e.data.height, 10);
       if (isNaN(h) || h < 200) return;
-      iframe.style.height = (h + 20) + 'px';
+      // No padding - parent height = exact content height. Dedup so a
+      // stable iframe stays put even if the iframe re-reports the same
+      // value many times.
+      if (Math.abs(h - lastSetHeight) < 2) return;
+      lastSetHeight = h;
+      iframe.style.height = h + 'px';
     }
     if (e.data.type === 'bp-quiz-result-id' && e.data.id) {
       try {
