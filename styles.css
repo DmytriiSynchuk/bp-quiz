@@ -795,3 +795,16 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
   .bp-email-input { padding: 0.6rem 0.75rem; font-size: 0.85rem; border-radius: 0.5rem; }
   .bp-email-submit { padding: 0.65rem; font-size: 0.85rem; border-radius: 0.5rem; }
 }
+
+/* ============================================================
+ * Embedded mode (inside an iframe on bepickleballer.com/quiz/).
+ * Neutralise the 100vh-based min-heights so the body collapses to
+ * actual content size. Without this, the parent's auto-resize and
+ * the iframe's min-height feed each other and the iframe grows
+ * indefinitely on every height report.
+ * ============================================================ */
+body.bp-embedded,
+body.bp-embedded #bp-quiz-app,
+body.bp-embedded #bp-quiz-app > .max-w-2xl {
+  min-height: 0 !important;
+}

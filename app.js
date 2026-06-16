@@ -62,14 +62,24 @@ window.bpQuiz = (function(){
 
   // When the quiz is embedded in an iframe on WordPress, post our current height
   // to the parent so the iframe can auto-resize and avoid an inner scrollbar.
+  // We measure the FIRST child's offsetHeight (the actual content), NOT
+  // document.documentElement.scrollHeight, because the latter grows with the
+  // iframe itself when the body has min-height: 100vh - that creates an
+  // infinite feedback loop (parent grows iframe -> 100vh grows -> body grows ->
+  // we report bigger height -> parent grows iframe again -> ...).
   var lastReportedHeight = 0;
+  function measureContentHeight() {
+    var el = document.getElementById('bp-quiz-app');
+    if (el) {
+      var rect = el.getBoundingClientRect();
+      return Math.ceil(rect.height);
+    }
+    return document.body ? document.body.scrollHeight : 0;
+  }
   function postHeightToParent() {
     if (window.parent === window) return;
-    var h = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight
-    );
-    if (h === lastReportedHeight) return;
+    var h = measureContentHeight();
+    if (!h || Math.abs(h - lastReportedHeight) < 2) return;
     lastReportedHeight = h;
     try {
       window.parent.postMessage({ type: 'bp-quiz-height', height: h }, '*');
@@ -77,15 +87,22 @@ window.bpQuiz = (function(){
   }
 
   if (window.parent !== window) {
+    // Mark embedded so styles.css can neutralise min-h-screen / 100vh rules
+    // that would otherwise feed back into the height calculation.
+    document.addEventListener('DOMContentLoaded', function(){
+      document.body.classList.add('bp-embedded');
+    });
     if (typeof ResizeObserver !== 'undefined') {
       try {
         var ro = new ResizeObserver(function(){ postHeightToParent(); });
-        document.addEventListener('DOMContentLoaded', function(){ ro.observe(document.body); });
+        document.addEventListener('DOMContentLoaded', function(){
+          var target = document.getElementById('bp-quiz-app') || document.body;
+          ro.observe(target);
+        });
       } catch (err) {}
     }
     window.addEventListener('load', postHeightToParent);
     window.addEventListener('resize', postHeightToParent);
-    // Poll briefly as a safety net for clients without ResizeObserver
     setInterval(postHeightToParent, 1000);
   }
 
