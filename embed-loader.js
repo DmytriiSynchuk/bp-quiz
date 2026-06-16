@@ -14,6 +14,14 @@
     iframe.src = QUIZ_BASE + window.location.search;
   }
 
+  // Keep iframe at least viewport-tall so the quiz's sticky footer is at the
+  // bottom of the screen when the quiz content is shorter than the viewport.
+  function syncMinHeight(){
+    iframe.style.minHeight = window.innerHeight + 'px';
+  }
+  syncMinHeight();
+  window.addEventListener('resize', syncMinHeight);
+
   var lastSetHeight = 0;
   window.addEventListener('message', function(e){
     if (e.origin !== ALLOWED_ORIGIN) return;

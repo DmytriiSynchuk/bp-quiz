@@ -87,17 +87,6 @@ window.bpQuiz = (function(){
   }
 
   if (window.parent !== window) {
-    // Inject min-height neutralisers IMMEDIATELY so the body never gets a
-    // 100vh-based min-height while embedded. Done via a <style> tag rather
-    // than a body class so there is no timing race with classList.add.
-    try {
-      var s = document.createElement('style');
-      s.textContent =
-        'html, body { min-height: 0 !important; height: auto !important; }' +
-        '#bp-quiz-app, #bp-quiz-app > div { min-height: 0 !important; height: auto !important; }';
-      (document.head || document.documentElement).appendChild(s);
-    } catch (err) {}
-
     function attachObserver(){
       if (typeof ResizeObserver === 'undefined') return;
       try {
