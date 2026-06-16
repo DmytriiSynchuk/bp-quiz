@@ -52,6 +52,41 @@ window.bpQuiz = (function(){
       url.searchParams.set('r', id);
       window.history.replaceState({}, '', url.toString());
     } catch (err) {}
+    // If embedded, tell the parent so it can mirror the id into its URL bar
+    if (window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: 'bp-quiz-result-id', id: id }, '*');
+      } catch (err) {}
+    }
+  }
+
+  // When the quiz is embedded in an iframe on WordPress, post our current height
+  // to the parent so the iframe can auto-resize and avoid an inner scrollbar.
+  var lastReportedHeight = 0;
+  function postHeightToParent() {
+    if (window.parent === window) return;
+    var h = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight
+    );
+    if (h === lastReportedHeight) return;
+    lastReportedHeight = h;
+    try {
+      window.parent.postMessage({ type: 'bp-quiz-height', height: h }, '*');
+    } catch (err) {}
+  }
+
+  if (window.parent !== window) {
+    if (typeof ResizeObserver !== 'undefined') {
+      try {
+        var ro = new ResizeObserver(function(){ postHeightToParent(); });
+        document.addEventListener('DOMContentLoaded', function(){ ro.observe(document.body); });
+      } catch (err) {}
+    }
+    window.addEventListener('load', postHeightToParent);
+    window.addEventListener('resize', postHeightToParent);
+    // Poll briefly as a safety net for clients without ResizeObserver
+    setInterval(postHeightToParent, 1000);
   }
 
   return {
@@ -60,6 +95,7 @@ window.bpQuiz = (function(){
     saveState: saveState,
     clearState: clearState,
     getResultIdFromUrl: getResultIdFromUrl,
-    setResultIdInUrl: setResultIdInUrl
+    setResultIdInUrl: setResultIdInUrl,
+    postHeightToParent: postHeightToParent
   };
 })();
